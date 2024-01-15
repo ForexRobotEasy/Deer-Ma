@@ -1,0 +1,76 @@
+
+//+------------------------------------------------------------------+
+//|                                           Deer Ma.mq5            |
+//|                          Copyright 2022, Forex Robot Easy Team   |
+//|                                      https://www.forexroboteasy.com |
+//+------------------------------------------------------------------+
+#property version   '1.00'
+#property strict
+#property description 'Deer Ma Forex Software'
+
+//+------------------------------------------------------------------+
+//| Customizable Parameters                                          |
+//+------------------------------------------------------------------+
+input int FastMA_Period = 10;       // Period for fast moving average
+input int SlowMA_Period = 20;       // Period for slow moving average
+
+//+------------------------------------------------------------------+
+//| Global Variables                                                 |
+//+------------------------------------------------------------------+
+double fastMA[];
+double slowMA[];
+
+//+------------------------------------------------------------------+
+//| Initialization                                                   |
+//+------------------------------------------------------------------+
+void OnInit()
+{
+    ArraySetAsSeries(fastMA, true);
+    ArraySetAsSeries(slowMA, true);
+}
+
+//+------------------------------------------------------------------+
+//| Start Function                                                   |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    int bars = Bars(Symbol(), 0);
+
+    if (bars < FastMA_Period || bars < SlowMA_Period)
+        return;
+
+    ArrayResize(fastMA, bars);
+    ArrayResize(slowMA, bars);
+
+    // Calculate moving averages
+    ArraySetAsSeries(fastMA, true);
+    ArraySetAsSeries(slowMA, true);
+
+    CopyBuffer(Symbol(), PERIOD_CURRENT, 0, bars, fastMA);
+    CopyBuffer(Symbol(), PERIOD_CURRENT, 1, bars, slowMA);
+
+    // Determine trade signals
+    if (fastMA[0] > slowMA[0] && fastMA[1] < slowMA[1])
+    {
+        // Open Buy trade
+        OrderSend(Symbol(), OP_BUY, 1, Ask, 3, 0, 0, 'Buy', 0, 0, Green);
+    }
+    else if (fastMA[0] < slowMA[0] && fastMA[1] > slowMA[1])
+    {
+        // Open Sell trade
+        OrderSend(Symbol(), OP_SELL, 1, Bid, 3, 0, 0, 'Sell', 0, 0, Red);
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Deinitialization                                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    // Close any open orders
+    for (int i = OrdersTotal() - 1; i >= 0; i--)
+    {
+        OrderSelect(i, SELECT_BY_POS, MODE_TRADES);
+        OrderClose(OrderTicket(), OrderLots(), OrderClosePrice(), 3, Red);
+    }
+}
